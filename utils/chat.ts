@@ -1,5 +1,4 @@
 import { ChatOpenAI } from 'langchain/chat_models/openai';
-import { OpenAI } from 'langchain/llms/openai';
 import {
   AIMessage,
   HumanMessage,
@@ -118,6 +117,8 @@ const chat = async ({
   const model = new ChatOpenAI({
     modelName: 'gpt-3.5-turbo',
     streaming: Boolean(stream),
+    presencePenalty: 0,
+    frequencyPenalty: 0.6,
     callbacks: [
       {
         handleLLMNewToken: stream,

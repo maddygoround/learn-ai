@@ -115,7 +115,7 @@ The goal of unit testing is to verify the behavior of the module in isolation. S
   return (
     <>
       <Head>
-        <title>Chatbot AI</title>
+        <title>AI Chatbot</title>
         <meta
           name="description"
           content="A simple chatbot starter kit for OpenAI's chat model using Next.js, TypeScript, and Tailwind CSS."
