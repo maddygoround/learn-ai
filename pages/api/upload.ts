@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextApiResponse , NextApiRequest } from 'next';
 import { IncomingForm, Fields, Files } from 'formidable'
 import { FileLoader } from "@/utils/loaders/file";
 import { IncomingMessage } from "http";
@@ -9,7 +9,7 @@ export const config = {
         bodyParser: false,
     },
 }
-const handler = async (request: IncomingMessage): Promise<any> => {
+const handler = async (request: IncomingMessage, res : NextApiResponse): Promise<any> => {
     try {
         const data = await new Promise<{ fields: any, files: any }>((resolve, reject) => {
             const form = new IncomingForm({
@@ -31,10 +31,10 @@ const handler = async (request: IncomingMessage): Promise<any> => {
         const text = chunks?.map((each) => each.pageContent)?.join('');
         const textSize = text?.length || 0;
         const nbTokens = countTokens({ text });
-        return { nbTokens, textSize }
+        return res.status(200).json({ hash, textSize, nbTokens });
     } catch (error) {
         console.error(error);
-        return new NextResponse("Error", { status: 500 });
+        return res.status(500).json({ error: error });
     }
 };
 

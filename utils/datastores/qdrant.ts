@@ -1,8 +1,7 @@
 
 import axios, { AxiosError, AxiosInstance } from 'axios';
-import { Embeddings } from 'langchain/embeddings';
+import type { Embeddings } from 'langchain/embeddings/base';
 import { OpenAIEmbeddings } from 'langchain/embeddings/openai';
-import { z } from 'zod';
 
 import { Chunk, MetadataFields } from '@/types';
 
@@ -19,7 +18,7 @@ type Point = {
   };
 };
 
-export class QdrantManager  {
+export class QdrantManager {
   client: AxiosInstance;
   embeddings: Embeddings;
 
@@ -93,21 +92,21 @@ export class QdrantManager  {
     const documentIds = ids == null ? documents.map(() => uuidv4()) : ids;
     const qdrantVectors = vectors.map(
       (vector, idx) =>
-        ({
-          id: documentIds[idx],
-          payload: {
-            datastore_id: process.env.DATASTORE_ID as string,
-            text: documents[idx].pageContent,
-            source: documents[idx].metadata.source,
-            tags: documents[idx].metadata.tags,
-            chunk_hash: documents[idx].metadata.chunk_hash,
-            chunk_offset: documents[idx].metadata.chunk_offset,
-            datasource_hash: documents[idx].metadata.datasource_hash,
-            datasource_id: documents[idx].metadata.datasource_id,
-            custom_id: documents[idx].metadata.custom_id,
-          },
-          vector,
-        } as Point)
+      ({
+        id: documentIds[idx],
+        payload: {
+          datastore_id: process.env.DATASTORE_ID as string,
+          text: documents[idx].pageContent,
+          source: documents[idx].metadata.source,
+          tags: documents[idx].metadata.tags,
+          chunk_hash: documents[idx].metadata.chunk_hash,
+          chunk_offset: documents[idx].metadata.chunk_offset,
+          datasource_hash: documents[idx].metadata.datasource_hash,
+          datasource_id: documents[idx].metadata.datasource_id,
+          custom_id: documents[idx].metadata.custom_id,
+        },
+        vector,
+      } as Point)
     );
 
     const chunkSize = 50;
@@ -179,46 +178,52 @@ export class QdrantManager  {
   }
 
   async search(props: any) {
-    const vectors = await this.embeddings.embedDocuments([props.query]);
+    try {
+      const vectors = await this.embeddings.embedDocuments([props.query]);
 
-    const results = await this.client.post(
-      `/collections/text-embedding-ada-002/points/search`,
-      {
-        vector: vectors[0],
-        limit: props.topK,
-        with_payload: true,
-        with_vectors: false,
-        filter: {
-          must: [
-            {
-              key: MetadataFields.datastore_id,
-              match: { value: process.env.DATASTORE_ID as string },
-            },
-            ...(props.filters?.custom_id
-              ? [
+      const results = await this.client.post(
+        `/collections/text-embedding-ada-002/points/search`,
+        {
+          vector: vectors[0],
+          limit: props.topK,
+          with_payload: true,
+          with_vectors: false,
+          filter: {
+            must: [
+              {
+                key: MetadataFields.datastore_id,
+                match: { value: process.env.DATASTORE_ID as string },
+              },
+              ...(props.filters?.custom_id
+                ? [
                   {
                     key: MetadataFields.custom_id,
                     match: { value: props.filters.custom_id },
                   },
                 ]
-              : []),
-            ...(props.filters?.datasource_id
-              ? [
+                : []),
+              ...(props.filters?.datasource_id
+                ? [
                   {
                     key: MetadataFields.datasource_id,
                     match: { value: props.filters.datasource_id },
                   },
                 ]
-              : []),
-          ],
-        },
-      }
-    );
+                : []),
+            ],
+          },
+        }
+      );
 
-    return (results.data?.result || [])?.map((each: any) => ({
-      score: each?.score,
-      source: each?.payload?.source,
-      text: each?.payload?.text,
-    }));
+      return (results.data?.result || [])?.map((each: any) => ({
+        score: each?.score,
+        source: each?.payload?.source,
+        text: each?.payload?.text,
+      }));
+    }
+    catch (error) {
+      console.log(error)
+      throw error;
+    }
   }
 }
